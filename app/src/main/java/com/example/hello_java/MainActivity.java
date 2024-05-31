@@ -72,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
+    @Override // 重载OnCreate函数，其中 saveInstanceState 中是
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -127,6 +127,4 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        });
     }
-
-
 }
