@@ -100,7 +100,7 @@ public class MainActivity extends AppCompatActivity {
         //sr botton
         immersive = findViewById(R.id.immersive);
 
-        //实时更新的
+        //实时更新的 文本信息
         inferenceTimeTextView = findViewById(R.id.inference_time);
         frameSizeTextView = findViewById(R.id.frame_size);
 
@@ -120,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
         ImageAnalyse imageAnalyse = new ImageAnalyse(cameraPreviewWrap, imageView, srTFLiteInference, srTFLiteInterpreter, srTFLite,  inferenceTimeTextView, frameSizeTextView);
 
         //cameraProcess.showCameraSupportSize(MainActivity.this);
-//    启动摄像头
+//    启动摄像头，同时分析器也传入这里（自动逐帧调用analyse函数）
         cameraProcess.startCamera(MainActivity.this, imageAnalyse, cameraPreviewWrap);
 
 //        //监听botton

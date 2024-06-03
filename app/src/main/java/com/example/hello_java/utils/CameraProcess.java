@@ -26,7 +26,13 @@ import androidx.camera.core.CameraSelector;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.camera.view.PreviewView;
 public class CameraProcess {
-    // 
+    /**
+     * ProcessCameraProvider 是 CameraX 中的一个核心类，负责管理摄像头的生命周期，包括打开和关闭摄像头，以及绑定用例（如预览、拍照、视频录制等）。
+     *      通过 ProcessCameraProvider，你可以配置和启动摄像头，并将其绑定到不同的生命周期（如 Activity 或 Fragment）。
+     *
+     * ListenableFuture 是 Guava 库中的接口，用于表示一个异步计算的结果。与 Future 类似，但它增加了对回调函数的支持，可以在计算完成后执行一些操作
+     * ListenableFuture 表示异步计算的结果，即可能尚未生成结果的计算。它是一种 Future，用于注册要在计算完成后或计算完成后立即执行的回调。
+     */
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     private int REQUEST_CODE_PERMISSIONS = 1001;
     private final String[] REQUIRED_PERMISSIONS = new String[]{"android.permission.CAMERA",
@@ -59,14 +65,14 @@ public class CameraProcess {
      *  传入分析器
      */
     public void startCamera(Context context, ImageAnalysis.Analyzer analyzer, PreviewView previewView) {
-        cameraProviderFuture = ProcessCameraProvider.getInstance(context); // 获取摄像头实例
+        cameraProviderFuture = ProcessCameraProvider.getInstance(context); // 获取摄像头实例——context传入的是一个activity实例
 
         // 传递一个Runnable()给监听器，通过(ContextCompat.getMainExecutor(context))指定应该在主线程（UI线程）上运行
         cameraProviderFuture.addListener(new Runnable() {
-            @Override
+            @Override // 重写这个run方法，然后就默认调用这个run方法
             public void run() {
                 try {
-                    ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                    ProcessCameraProvider cameraProvider = cameraProviderFuture.get(); // 获取 cameraProvider 实例；这行代码阻塞直到 cameraProviderFuture 完成
                     // 对方法进行实例化（这里应该进行了修改）
                     ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
                             //.setTargetAspectRatio(AspectRatio.RATIO_4_3)
