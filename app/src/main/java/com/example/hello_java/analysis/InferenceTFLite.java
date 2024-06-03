@@ -30,22 +30,25 @@ import org.tensorflow.lite.support.common.ops.QuantizeOp;
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 
 public class InferenceTFLite {
-    private Interpreter tflite;
+    private Interpreter tflite; // 解释器
+    // option 理解为模型的一个配置；可以加nnapi代理加速、gpu加速、或者多线程等东西
     Interpreter.Options options = new Interpreter.Options();
-    private String MODEL_FILE = "quicsr_float32_epoch_200.tflite";
+    private String MODEL_FILE = "quicsr_float32_epoch_200.tflite"; // 使用float32的模型
     private Boolean IS_INT8 = false;
-    private final Size INPNUT_SIZE = new Size(960, 540);
-    private final int[] OUTPUT_SIZE = new int[] {1, 1080, 1920, 3};
+    private final Size INPNUT_SIZE = new Size(960, 540); // 输入写死了
+    private final int[] OUTPUT_SIZE = new int[] {1, 1080, 1920, 3}; // 输出也写死了
     private long startTime;
     private long endTime;
     private long costTime;
+    // 量化参数
     MetadataExtractor.QuantizationParams input5SINT8QuantParams = new MetadataExtractor.QuantizationParams(0.003921567928045988f, 0);
     MetadataExtractor.QuantizationParams output5SINT8QuantParams = new MetadataExtractor.QuantizationParams(0.003921568859368563f, 0);
     public void initialModel(Context activity) {
         try {
             // 要tflite 2.16.1 版本才支持 Transpose version 6操作
+            // 读入到buffer中
             ByteBuffer tfliteModel = FileUtil.loadMappedFile(activity, MODEL_FILE);
-            tflite = new Interpreter(tfliteModel, options);
+            tflite = new Interpreter(tfliteModel, options); //
             Log.i("Debug tfliteSupport", "Success loading model");
         } catch (IOException e){
             Log.e("tflite Support", "Error loading model: ", e);
@@ -56,8 +59,22 @@ public class InferenceTFLite {
         return OUTPUT_SIZE;
     }
     public int[] superResolution(Bitmap bitmap) {
-        TensorImage modelInput;
+        /**
+         * 使用tensorimage 加载bitmap，然后使用imageProcessor 进行处理，最后将Bytebuffer传给 tensorBuffer
+         * A typical use case of TensorImage is to first load a Bitmap image, then process it using ImageProcessor, and finally get the underlying ByteBuffer of the TensorBuffer and feed it into the TFLite interpreter.
+         *
+         * tensorImage 不拷贝数据
+         * IMPORTANT: to achieve the best performance, TensorImage avoids copying data whenever it's possible. Therefore, it doesn't own its data. Callers should not modify data objects those are passed to load(Bitmap) or load(TensorBuffer, ColorSpaceType).
+         */
+        TensorImage modelInput; // 输入model 的tensorImage
+
+        /**
+         * 将一个tensorImage 转化成另外的一个tensorimage
+         * ImageProcessor is a helper class for preprocessing and postprocessing TensorImage. It could transform a TensorImage to another by executing a chain of ImageOperator.
+         * ImageProcessor.Builder: The Builder to create an ImageProcessor, which could be executed later.
+         */
         ImageProcessor imageProcessor;
+
         if (IS_INT8) {
             imageProcessor = new ImageProcessor.Builder()
                     .add(new ResizeOp(INPNUT_SIZE.getHeight(), INPNUT_SIZE.getWidth(), ResizeOp.ResizeMethod.BILINEAR))
@@ -68,24 +85,25 @@ public class InferenceTFLite {
             modelInput = new TensorImage(DataType.UINT8);
         } else {
             imageProcessor = new ImageProcessor.Builder()
-                                .add(new ResizeOp(INPNUT_SIZE.getHeight(), INPNUT_SIZE.getWidth(), ResizeOp.ResizeMethod.BILINEAR))
-                                .add(new NormalizeOp(0, 255))
+                                .add(new ResizeOp(INPNUT_SIZE.getHeight(), INPNUT_SIZE.getWidth(), ResizeOp.ResizeMethod.BILINEAR)) // 调整输入图片的size
+                                .add(new NormalizeOp(0, 255)) // 归一化
                                 .build();
             modelInput = new TensorImage(DataType.FLOAT32);
         }
         startTime = System.currentTimeMillis();
-        modelInput.load(bitmap);
+        modelInput.load(bitmap); // 将bitmap 载入到input中
         // 对输入做预处理，摄像头读取到的画面不一定正好是模型的输入，需要做缩放，并归一化到0，1
         modelInput = imageProcessor.process(modelInput);
 
-        TensorBuffer hwcTensorBuffer = modelInput.getTensorBuffer();
+        TensorBuffer hwcTensorBuffer = modelInput.getTensorBuffer(); // （感觉是内存的拷贝等工作） ?
+//        Q: tensorBuffer 和 modelInput 的区别和联系是啥
         int[] shape = hwcTensorBuffer.getShape();
         // [h,w,c] = [1920, 1080, 3]
         for (int i = 0; i < shape.length; i++) {
             Log.i("TFLite input TensorBuffer shape", i + " " + shape[i]);
         }
 
-        TensorBuffer hwcOutputTensorBuffer;
+        TensorBuffer hwcOutputTensorBuffer; // 创建输出的tensorBuffer
         if (IS_INT8) {
             hwcOutputTensorBuffer = TensorBuffer.createFixedSize(OUTPUT_SIZE, DataType.UINT8);
         } else {
@@ -97,6 +115,7 @@ public class InferenceTFLite {
 
         startTime = System.currentTimeMillis();
         if (tflite != null) {
+            // intepreter.run(input, output)
             tflite.run(hwcTensorBuffer.getBuffer(), hwcOutputTensorBuffer.getBuffer());
         }
         endTime = System.currentTimeMillis();
@@ -111,11 +130,12 @@ public class InferenceTFLite {
         }
 
         startTime = System.currentTimeMillis();
-        int[] outshape = hwcOutputTensorBuffer.getShape();
+        int[] outshape = hwcOutputTensorBuffer.getShape(); // 是一个数组
         // [b, h, w, c]
         int outHeight = outshape[1];
         int outWidth = outshape[2];
         for (int i = 0; i < outshape.length; i++) {
+            // 都通过log.i 来进行打印
             Log.i("TFlite output TensorBuffer shape", i + " " + outshape[i]);
         }
         float[] hwcOutputData = hwcOutputTensorBuffer.getFloatArray();
@@ -151,8 +171,8 @@ public class InferenceTFLite {
             //ANEURALNETWORKS_PREFER_SUSTAINED_SPEED：倾向于最大限度地提高连续帧的吞吐量，例如，在处理来自相机的连续帧时。
 //            nnApiOptions.setExecutionPreference(NnApiDelegate.Options.EXECUTION_PREFERENCE_SUSTAINED_SPEED);
 //            nnApiDelegate = new NnApiDelegate(nnApiOptions);
-            nnApiDelegate = new NnApiDelegate();
-            options.addDelegate(nnApiDelegate);
+            nnApiDelegate = new NnApiDelegate(); // 创建一个nnapi代理
+            options.addDelegate(nnApiDelegate); // 使用nnapi代理
             Log.i("Debug tfliteSupport", "using nnapi delegate.");
         } else {
             addThread(4);
@@ -172,7 +192,7 @@ public class InferenceTFLite {
 //    }
 
     public void addThread(int thread) {
-        options.setNumThreads(thread);
+        options.setNumThreads(thread); // 使用多线程
         Log.i("Debug tfliteSupport", "using addThread: " + thread);
     }
 }

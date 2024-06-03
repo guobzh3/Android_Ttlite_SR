@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
-    <!-- 添加摄像机权限 -->
+    <!-- 添加摄像机权限：申请手机摄像头权限-->
     <uses-feature android:name="android.hardware.camera.any" />
     <uses-permission android:name="android.permission.CAMERA" />
 
@@ -16,6 +15,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Hello_JAVA"
         tools:targetApi="31">
+        <activity
+            android:name=".MainActivity2"
+            android:exported="true">
+
+        </activity>
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

@@ -14,6 +14,7 @@ import android.widget.TextView;
 
 import com.example.hello_java.utils.ImageProcess;
 
+// 继承 ImageAnalysis.Analyzer 类，并重写 analyse 方法：对摄像头传入的每帧进行处理
 public class ImageAnalyse implements ImageAnalysis.Analyzer{
     ImageView imageView;
     ImageProcess imageProcess;
@@ -23,6 +24,7 @@ public class ImageAnalyse implements ImageAnalysis.Analyzer{
     InferenceTFLite srTFLite;
     TextView inferenceTimeTextView;
     TextView frameSizeTextView;
+    // 初始胡相关的变量
     public ImageAnalyse(PreviewView previewView,
                         ImageView imageView,
                         Inference srTFLiteInference,
@@ -39,15 +41,16 @@ public class ImageAnalyse implements ImageAnalysis.Analyzer{
         this.frameSizeTextView = frameSizeTextView;
         this.imageProcess = new ImageProcess();
     }
-
+     // 重载这个方法，基于这个方法进行推理
     @Override
     public void analyze(@NonNull ImageProxy image) {
         long startTime = System.currentTimeMillis();
 
         int previewHeight = previewView.getHeight();
+        System.out.println("previewHeight" + (previewHeight));
         int previewWidth = previewView.getWidth();
-
-        byte[][] yuvBytes = new byte[3][];
+// 对接收到的数据进行处理：从YUV转成RGB
+        byte[][] yuvBytes = new byte[3][]; // 这是个二维数组
         ImageProxy.PlaneProxy[] planes = image.getPlanes();
         int imageHeight = image.getHeight();
         int imageWidth = image.getWidth();
@@ -80,9 +83,10 @@ public class ImageAnalyse implements ImageAnalysis.Analyzer{
                 uvPixelStride,
                 rgbBytes
         );
-
-        // 原图bitmap，转成Bitmap格式方便在Android上进行处理和显示图像
+        // 暂时不理解上面的转化了，后面需要再说
+        // 原图bitmap，转成Bitmap格式方便在Android上进行处理和显示图像（位图的格式）
         Bitmap imageBitmap = Bitmap.createBitmap(imageWidth, imageHeight, Bitmap.Config.ARGB_8888);
+        // 将对应的rgbBytes填充到bitmap 中 ？？？
         imageBitmap.setPixels(rgbBytes, 0, imageWidth, 0, 0, imageWidth, imageHeight);
 
         // 变化矩阵
@@ -105,6 +109,8 @@ public class ImageAnalyse implements ImageAnalysis.Analyzer{
 //        srTFLiteInference.superResolution(cropImageBitmap);
         //int[] pixels = srTFLiteInference.superResolution(imageBitmap);
 //        int[] pixels = srTFLiteInterpreter.superResolution(imageBitmap);
+        // 对模型进行推理（输入的是整理后的bitmap ）
+        // 输出就直接是pixels 了 ？
         int[] pixels = srTFLite.superResolution(imageBitmap);
 
         int[] outputSize = srTFLite.getOUTPUT_SIZE();

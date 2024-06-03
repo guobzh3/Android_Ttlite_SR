@@ -11,15 +11,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"/>
+        app:layout_constraintLeft_toLeftOf="parent">
 
-    <androidx.camera.view.PreviewView
-        android:id="@+id/camera_preview_wrap"
-        android:layout_width="1080px"
-        android:layout_height="1920px"
-        android:background="#00000000"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"/>
+        <androidx.camera.view.PreviewView
+            android:id="@+id/camera_preview_wrap"
+            android:layout_width="1080px"
+            android:layout_height="1920px"
+            android:background="#00000000" />
+    </androidx.camera.view.PreviewView>
 
     <ImageView
         android:id="@+id/box_label_canvas"
@@ -30,6 +29,7 @@
 
     <!-- 底部布局，
     其中 hegiht=wrap_content表示高度仅仅足以包含其内容，会随着内部子视图的变化动态调整-->
+<!--    这里是放到了一个子布局中-->
     <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:id="@+id/layout2"
@@ -95,6 +95,7 @@
             android:textColor="#FFFFFF"
             android:text="immersive: " />
 
+<!--        switch控件-->
         <Switch
             android:id="@+id/immersive"
             android:layout_width="wrap_content"

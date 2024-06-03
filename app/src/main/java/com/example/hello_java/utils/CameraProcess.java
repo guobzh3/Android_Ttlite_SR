@@ -1,4 +1,4 @@
-package com.example.hello_java.utils;
+package com.example.hello_java.utils; // 打包成一个package
 
 import android.app.Activity;
 import android.content.Context;
@@ -55,9 +55,10 @@ public class CameraProcess {
 
     /**
      *  打开摄像头获取预览画面
+     *  传入分析器
      */
     public void startCamera(Context context, ImageAnalysis.Analyzer analyzer, PreviewView previewView) {
-        cameraProviderFuture = ProcessCameraProvider.getInstance(context);
+        cameraProviderFuture = ProcessCameraProvider.getInstance(context); // 获取摄像头实例
 
         // 传递一个Runnable()给监听器，通过(ContextCompat.getMainExecutor(context))指定应该在主线程（UI线程）上运行
         cameraProviderFuture.addListener(new Runnable() {
@@ -65,9 +66,11 @@ public class CameraProcess {
             public void run() {
                 try {
                     ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                    // 对方法进行实例化（这里应该进行了修改）
                     ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
                             //.setTargetAspectRatio(AspectRatio.RATIO_4_3)
                             .setTargetResolution(new Size(1080, 1920))
+                            // 只保留当前还没处理好的这一帧，其他的丢弃（有不通的策略 ）
                             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                             .build();
                     imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(context), analyzer);
@@ -80,6 +83,7 @@ public class CameraProcess {
         }, ContextCompat.getMainExecutor(context));
     }
 
+//
     private void bindPreview(@NonNull Context context, ProcessCameraProvider cameraProvider, PreviewView previewView, ImageAnalysis imageAnalysis) {
 
         //创建Preview对象，Preview对象为CameraX的一个用于显示相机视图的组件，如果不想摄像头显示预览画面，可以去掉
@@ -94,6 +98,7 @@ public class CameraProcess {
         //previewBuilder.setSurfaceProvider(previewView.createSurfaceProvider());
 
         // 将摄像头的生命周期绑定到 我们的 MainActivity 里面，确保了相机在 MainActivity 不活动时不会继续运行，有效的管理资源
+        // 把摄像头、分析器、预览画面管理器绑定到一起
         cameraProvider.bindToLifecycle((LifecycleOwner) context, cameraSelector, imageAnalysis);
 
     }
