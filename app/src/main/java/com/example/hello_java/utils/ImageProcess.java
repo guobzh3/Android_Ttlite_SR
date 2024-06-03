@@ -19,11 +19,11 @@ public class ImageProcess {
         // Because of the variable row stride it's not possible to know in
         // advance the actual necessary dimensions of the yuv planes.
         for (int i = 0; i < planes.length; ++i) {
-            final ByteBuffer buffer = planes[i].getBuffer();
+            final ByteBuffer buffer = planes[i].getBuffer(); // 获取每个平面的数据
             if (yuvBytes[i] == null) {
-                yuvBytes[i] = new byte[buffer.capacity()];
+                yuvBytes[i] = new byte[buffer.capacity()]; // 创建一个跟buffer大小相同的byte数组
             }
-            buffer.get(yuvBytes[i]);
+            buffer.get(yuvBytes[i]); // 将 ByteBuffer 中的数据复制到字节数组中
         }
     }
 

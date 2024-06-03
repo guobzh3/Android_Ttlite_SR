@@ -26,6 +26,7 @@ import androidx.camera.core.CameraSelector;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.camera.view.PreviewView;
 public class CameraProcess {
+    // 
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     private int REQUEST_CODE_PERMISSIONS = 1001;
     private final String[] REQUIRED_PERMISSIONS = new String[]{"android.permission.CAMERA",

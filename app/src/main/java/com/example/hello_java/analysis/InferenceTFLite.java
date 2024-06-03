@@ -48,8 +48,11 @@ public class InferenceTFLite {
             // 要tflite 2.16.1 版本才支持 Transpose version 6操作
             // 读入到buffer中
             ByteBuffer tfliteModel = FileUtil.loadMappedFile(activity, MODEL_FILE);
+
             tflite = new Interpreter(tfliteModel, options); //
+
             Log.i("Debug tfliteSupport", "Success loading model");
+
         } catch (IOException e){
             Log.e("tflite Support", "Error loading model: ", e);
             Toast.makeText(activity, "load model error: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -86,7 +89,7 @@ public class InferenceTFLite {
         } else {
             imageProcessor = new ImageProcessor.Builder()
                                 .add(new ResizeOp(INPNUT_SIZE.getHeight(), INPNUT_SIZE.getWidth(), ResizeOp.ResizeMethod.BILINEAR)) // 调整输入图片的size
-                                .add(new NormalizeOp(0, 255)) // 归一化
+                                .add(new NormalizeOp(0, 255)) // 归一化: (input - mean) / stddev.
                                 .build();
             modelInput = new TensorImage(DataType.FLOAT32);
         }
@@ -95,33 +98,41 @@ public class InferenceTFLite {
         // 对输入做预处理，摄像头读取到的画面不一定正好是模型的输入，需要做缩放，并归一化到0，1
         modelInput = imageProcessor.process(modelInput);
 
+        /** getTensorBuffer() :
+         *      Returns a reference to a TensorBuffer which holds the image data
+         *
+         * tensorBuffer : Represents the data buffer for either a model's input or its output.
+         */
+
         TensorBuffer hwcTensorBuffer = modelInput.getTensorBuffer(); // （感觉是内存的拷贝等工作） ?
 //        Q: tensorBuffer 和 modelInput 的区别和联系是啥
-        int[] shape = hwcTensorBuffer.getShape();
+        int[] shape = hwcTensorBuffer.getShape(); // 都是要声明一个数组来接住返回值
         // [h,w,c] = [1920, 1080, 3]
         for (int i = 0; i < shape.length; i++) {
             Log.i("TFLite input TensorBuffer shape", i + " " + shape[i]);
         }
 
-        TensorBuffer hwcOutputTensorBuffer; // 创建输出的tensorBuffer
+// 创建输出的tensorBuffer，设定其SIZE 和 DATA_TYPE
+        TensorBuffer hwcOutputTensorBuffer;
         if (IS_INT8) {
             hwcOutputTensorBuffer = TensorBuffer.createFixedSize(OUTPUT_SIZE, DataType.UINT8);
         } else {
             hwcOutputTensorBuffer = TensorBuffer.createFixedSize(OUTPUT_SIZE, DataType.FLOAT32);
         }
+
         endTime = System.currentTimeMillis();
         costTime = endTime - startTime;
         Log.i("TFLite pre process time:", Long.toString(costTime) + "ms");
 
         startTime = System.currentTimeMillis();
         if (tflite != null) {
-            // intepreter.run(input, output)
             tflite.run(hwcTensorBuffer.getBuffer(), hwcOutputTensorBuffer.getBuffer());
         }
         endTime = System.currentTimeMillis();
         costTime = endTime - startTime;
         Log.i("TFLite inference time:", Long.toString(costTime) + "ms");
 
+        // 如果是int8，需要对输出进行反量化
         if (IS_INT8) {
             TensorProcessor tensorProcessor = new TensorProcessor.Builder()
                     .add(new DequantizeOp(output5SINT8QuantParams.getZeroPoint(), output5SINT8QuantParams.getScale()))
@@ -138,7 +149,12 @@ public class InferenceTFLite {
             // 都通过log.i 来进行打印
             Log.i("TFlite output TensorBuffer shape", i + " " + outshape[i]);
         }
+        /**
+         * 以浮点数的方式返回buffer中存储的数据；如果是int类型的，也会转换成float再返回
+         * Returns a float array of the values stored in this buffer. If the buffer is of different types than float, the values will be converted into float. For example, values in TensorBufferUint8 will be converted from uint8 to float.
+         */
         float[] hwcOutputData = hwcOutputTensorBuffer.getFloatArray();
+        Log.i("array length" , String.valueOf(hwcOutputData.length));
         int[] pixels = new int[outHeight * outWidth];
         int yp = 0;
         for (int h = 0; h < outHeight; h++) {
@@ -149,6 +165,8 @@ public class InferenceTFLite {
                 r = r > 255 ? 255 : (Math.max(r, 0));
                 g = g > 255 ? 255 : (Math.max(g, 0));
                 b = b > 255 ? 255 : (Math.max(b, 0));
+                // int[] 是32位的，而像素是8位的，因此可以只用一个int[] 数组就能存下RGB了
+                // A 是全1，就是完全不透明的
                 pixels[yp++] = 0xff000000 | (r << 16 & 0xff0000) | (g << 8 & 0xff00) | (b & 0xff);
             }
         }
@@ -174,7 +192,8 @@ public class InferenceTFLite {
             nnApiDelegate = new NnApiDelegate(); // 创建一个nnapi代理
             options.addDelegate(nnApiDelegate); // 使用nnapi代理
             Log.i("Debug tfliteSupport", "using nnapi delegate.");
-        } else {
+        }
+        else {
             addThread(4);
         }
     }
